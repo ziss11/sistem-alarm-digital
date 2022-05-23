@@ -10,7 +10,7 @@
 #define CLK_PIN 13
 #define DATA_PIN 11
 #define CS_PIN 10
-#define LDR A1
+#define LDR A0
 
 #define NUM_ROWS 4
 #define NUM_COLS 4
@@ -34,7 +34,7 @@ Keypad myKeypad = Keypad(makeKeymap(keymap), rowPins, colPins, NUM_ROWS, NUM_COL
 DS3231 rtc(SDA, SCL);
 Time t;
 
-uint8_t scrollSpeed = 25;
+uint8_t scrollSpeed = 30;
 textEffect_t scrollEffectIn = PA_SCROLL_UP;
 textEffect_t scrollEffectOut = PA_SCROLL_UP;
 textEffect_t effectPrint = PA_PRINT;
@@ -43,10 +43,6 @@ textPosition_t textAlign = PA_CENTER;
 uint16_t scrollPause = 3000;
 
 bool mainLoop = true;
-bool timeSync = true;
-
-bool systemMainLoop = true;
-bool systemSettingsLoop = false;
 
 int display_scene = 0;
 int display_effect = 0;
@@ -55,16 +51,15 @@ char text[BUF_SIZE];
 
 uint8_t intensity;
 
-uint8_t timeHour;
-uint8_t timeMinute;
-uint8_t timeSecond;
+uint8_t hour;
+uint8_t minute;
+uint8_t second;
 
 String times;
-uint8_t hour, minute, second;
 int temp;
 
-String name = "Azis";
-String nrp = "7004";
+String name = " Abdul Azis ";
+String nrp = " 07211940007004 ";
 
 uint8_t degC[] = {6, 3, 3, 56, 68, 68, 68};
 String daysOfWeek[7] = {
@@ -81,43 +76,131 @@ char keypressed;
 int pressedCount = 0;
 char c1, c2;
 
-byte setIntensityLed(int light)
+int setIntensityLed(int light)
 {
-    byte _value = 0;
-    if (light >= 0 && light <= 127)
+    int value = 0;
+    if (light >= 0 && light <= 150)
     {
-        _value = 15;
+        value = 1;
     }
-    else if (light >= 128 && light <= 319)
+    else if (light >= 151 && light <= 250)
     {
-        _value = 10;
+        value = 5;
     }
-    else if (light >= 320 && light <= 512)
+    else
     {
-        _value = 5;
-    };
-    return _value;
+        value = 10;
+    }
+    return value;
 }
 
-int formatYear(int longYear)
+void readKeypad()
 {
-    return longYear % 100;
+    keypressed = myKeypad.getKey();
+
+    while (keypressed != NO_KEY)
+    {
+        if (keypressed == '*')
+        {
+            mainLoop == false;
+            Serial.println(keypressed);
+            text[0] = hour / 10 + 48;
+            text[1] = '-';
+            text[2] = ':';
+            text[3] = '-';
+            text[4] = '-';
+        }
+    }
 }
 
-void setTimeAndTemp()
+void displayScene()
+{
+    switch (display_scene)
+    {
+    case 0:
+        temp = rtc.getTemp();
+        dtostrf(temp, 0, 0, text);
+        strcat(text, " $");
+
+        if (display_effect == 1)
+        {
+            output.setTextEffect(PA_SCROLL_DOWN, PA_SCROLL_UP);
+            display_effect = 0;
+        }
+        break;
+    case 1:
+        strcpy(text, times.c_str());
+        if (display_effect == 0)
+        {
+            output.setTextEffect(PA_OPENING, PA_CLOSING);
+            display_effect = 1;
+        }
+        break;
+    case 2:
+        strcpy(text, nrp.c_str());
+        if (display_effect == 2)
+        {
+            output.setTextEffect(PA_SCROLL_LEFT, effectNoEffect);
+            display_effect = 0;
+        }
+        break;
+    case 3:
+        strcpy(text, name.c_str());
+        if (display_effect == 3)
+        {
+            output.setTextEffect(PA_SCROLL_LEFT, effectNoEffect);
+            display_effect = 0;
+        }
+        break;
+    case 4:
+        String result = nrp + ';' + name;
+        strcpy(text, result.c_str());
+        if (display_effect == 4)
+        {
+            output.setTextEffect(PA_SCROLL_LEFT, effectNoEffect);
+            display_effect = 0;
+        }
+        break;
+    }
+}
+
+void setTime()
 {
     hour = t.hour;
     minute = t.min;
-    second = t.sec;
     temp = (int)rtc.getTemp();
-
     times = (String)hour + ':' + minute;
 }
 
 void setTimer()
 {
-    if (second == 10)
+    Time timer = rtc.getTime();
+    Serial.println(rtc.getTimeStr());
+
+    if (timer.sec == 10 || timer.sec == 40)
     {
+        display_scene = 0;
+        Serial.println("Menampilkan Suhu Ruangan");
+    }
+    else if (timer.sec == 6)
+    {
+        display_scene = 2;
+        Serial.println("Alarm 1");
+    }
+    else if (timer.sec == 16)
+    {
+        display_scene = 3;
+        Serial.println("Alarm 2");
+    }
+    else if (timer.sec == 24)
+    {
+        display_scene = 4;
+        Serial.println("Alarm 3");
+    }
+    else
+    {
+        display_scene = 1;
+        Serial.println("Menampilkan Jam");
     }
 }
 
@@ -129,8 +212,6 @@ void setup()
 
     output.addChar('$', degC);
     output.setIntensity(1);
-
-    pinMode(LDR, INPUT_PULLUP);
 
     for (byte i = 0; i < 10; i++)
     {
@@ -144,85 +225,43 @@ void loop()
     intensity = setIntensityLed(analogRead(LDR));
     output.setIntensity(intensity);
 
-    while (keypressed == NO_KEY)
+    if (output.displayAnimate())
     {
-        if (output.displayAnimate())
+        if (strlen(text) >= 6)
         {
-            output.displayText(text, textAlign, scrollSpeed, scrollPause, effectPrint, effectNoEffect);
-
-            t = rtc.getTime();
-            if (systemMainLoop == true && systemSettingsLoop == false)
-            {
-                if (mainLoop == true)
-                {
-                    output.setSpeed(scrollSpeed);
-                    output.setPause(scrollPause);
-                    output.setTextEffect(0, PA_SCROLL_DOWN, PA_NO_EFFECT);
-                    mainLoop = false;
-                }
-                setTimeAndTemp();
-
-                switch (display_scene)
-                {
-                case 0:
-                    strcpy(text, times.c_str());
-                    if (display_scene == 0)
-                    {
-                        output.setTextEffect(PA_OPENING, PA_NO_EFFECT);
-                        display_effect = 1;
-                    }
-                    break;
-                case 1:
-                    dtostrf(temp, 0, 0, text);
-                    strcat(text, " $");
-                    if (display_scene == 0)
-                    {
-                        output.setTextEffect(PA_RANDOM, PA_NO_EFFECT);
-                        display_effect = 0;
-                    }
-                    break;
-                }
-
-                if (second >= 0 && second <= 30)
-                {
-                    display_scene = 0;
-                }
-                else
-                {
-                    display_scene = 1;
-                }
-            }
-            if (systemMainLoop == false && systemSettingsLoop == true)
-            {
-                if (mainLoop == false)
-                {
-                    output.setSpeed(scrollSpeed);
-                    output.setPause(scrollPause);
-                    output.setTextEffect(0, PA_SCROLL_UP, PA_NO_EFFECT);
-                    mainLoop = true;
-                }
-                char keypressed2 = myKeypad.waitForKey();
-            }
+            output.displayText(text, textAlign, scrollSpeed, scrollPause, PA_SCROLL_LEFT, effectNoEffect);
         }
-    }
-
-    if (keypressed == '*')
-    {
-        Serial.println(keypressed);
-        systemMainLoop = false;
-        systemSettingsLoop = true;
-
-        text[0] = timeHour / 10 + 48;
-        text[1] = timeHour % 10 + 48;
-        text[2] = ':';
-        text[3] = '-';
-        text[4] = '-';
-
-        char keypressed2 = myKeypad.waitForKey();
-        if (keypressed2 != NO_KEY && keypressed2 != '*' && keypressed2 != '#' && keypressed2 != 'A' && keypressed2 != 'B' && keypressed2 != 'C' && keypressed2 != 'D')
+        else
         {
-            c1 = keypressed2;
-            text[0] = keypressed2;
+            output.displayText(text, textAlign, scrollSpeed, scrollPause, PA_PRINT, effectNoEffect);
         }
+
+        t = rtc.getTime();
+
+        // if (mainLoop == true)
+        // {
+        //     output.setSpeed(40);
+        //     output.setPause(500);
+        //     output.setTextEffect(0, PA_SCROLL_DOWN, PA_NO_EFFECT);
+        //     mainLoop = false;
+        // }
+
+        setTime();
+        displayScene();
+        setTimer();
     }
+    // if (keypressed == '*')
+    // {
+    //     mainLoop == false;
+    //     Serial.println(keypressed);
+    //     text[0] = hour / 10 + 48;
+    //     text[1] = '-';
+    //     text[2] = ':';
+    //     text[3] = '-';
+    //     text[4] = '-';
+    // }
+    // if (keypressed == '#')
+    // {
+    //     keypressed = NO_KEY;
+    // }
 }
