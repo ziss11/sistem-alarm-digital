@@ -251,14 +251,39 @@ void playAnimate()
                     if (keypressed2 >= '0' && keypressed2 <= '9')
                     {
                         Serial.println(keypressed2);
-                        inputHourString += keypressed2;
-                        hour = inputHourString.toInt();
+                        if (inputHourString.length() < 2)
+                        {
+                            inputHourString += keypressed2;
+                            hour = inputHourString.toInt();
 
-                        text[0] = hour / 10 + 48;
-                        text[1] = hour % 10 + 48;
-                        text[2] = ':';
-                        text[3] = '-';
-                        text[4] = '-';
+                            text[0] = hour / 10 + 48;
+                            text[1] = hour % 10 + 48;
+                            text[2] = ':';
+                            text[3] = '-';
+                            text[4] = '-';
+                        }
+                        else
+                        {
+                            inputMinuteString += keypressed2;
+                            minute = inputMinuteString.toInt();
+
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = ':';
+                            text[3] = minute / 10 + 48;
+                            text[4] = minute % 10 + 48;
+                        }
+
+                        if (hour >= 24)
+                        {
+                            hour = 0;
+                        }
+
+                        if (minute >= 60)
+                        {
+                            minute = 0;
+                            hour++;
+                        }
 
                         output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
                     }
@@ -267,18 +292,62 @@ void playAnimate()
                         rtc.setTime(hour, minute, second);
                         isSetTime = false;
                         inputHourString = "";
+                        inputMinuteString = "";
                         setting(isSetTime);
                     }
-                    // if (keypressed2 == 'B')
-                    // {
-                    //     text[0] = '-';
-                    //     text[1] = '-';
-                    //     text[2] = ':';
-                    //     text[3] = minute / 10 + 48;
-                    //     text[4] = minute % 10 + 48;
+                }
 
-                    //     output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
-                    // }
+                if (isSetAlarm)
+                {
+                    char keypressed3 = myKeypad.waitForKey();
+
+                    if (keypressed3 >= '0' && keypressed3 <= '9')
+                    {
+                        Serial.println(keypressed3);
+                        if (inputHourString.length() < 2)
+                        {
+                            inputHourString += keypressed3;
+                            hour = inputHourString.toInt();
+
+                            text[0] = hour / 10 + 48;
+                            text[1] = hour % 10 + 48;
+                            text[2] = ':';
+                            text[3] = '-';
+                            text[4] = '-';
+                        }
+                        else
+                        {
+                            inputMinuteString += keypressed3;
+                            minute = inputMinuteString.toInt();
+
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = ':';
+                            text[3] = minute / 10 + 48;
+                            text[4] = minute % 10 + 48;
+                        }
+
+                        if (hour >= 24)
+                        {
+                            hour = 0;
+                        }
+
+                        if (minute >= 60)
+                        {
+                            minute = 0;
+                            hour++;
+                        }
+
+                        output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                    }
+                    else if (keypressed3 == '#')
+                    {
+                        rtc.setTime(hour, minute, second);
+                        isSetTime = false;
+                        inputHourString = "";
+                        inputMinuteString = "";
+                        setting(isSetTime);
+                    }
                 }
             }
         }
