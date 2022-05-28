@@ -166,7 +166,7 @@ void displayScene()
 
         if (display_effect == 2)
         {
-            output.setTextEffect(PA_OPENING, PA_NO_EFFECT);
+            output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
             output.setPause(scrollPause);
             display_effect = 3;
         }
@@ -176,7 +176,7 @@ void displayScene()
 
         if (display_effect == 3)
         {
-            output.setTextEffect(PA_OPENING, PA_NO_EFFECT);
+            output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
             output.setPause(scrollPause);
             display_effect = 4;
         }
@@ -186,7 +186,7 @@ void displayScene()
 
         if (display_effect == 4)
         {
-            output.setTextEffect(PA_OPENING, PA_NO_EFFECT);
+            output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
             output.setPause(scrollPause);
             display_effect = 0;
         }
@@ -201,17 +201,17 @@ void setScene()
         display_scene = 1;
         Serial.println("Suhu");
     }
-    if (t.hour == hourAlarm1 && t.min == minuteAlarm1)
+    else if (t.hour == hourAlarm1 && t.min == minuteAlarm1)
     {
         display_scene = 2;
         Serial.println("Alarm 1");
     }
-    if (t.hour == hourAlarm2 && t.min == minuteAlarm2)
+    else if (t.hour == hourAlarm2 && t.min == minuteAlarm2)
     {
         display_scene = 3;
         Serial.println("Alarm 2");
     }
-    if (t.hour == hourAlarm3 && t.min == minuteAlarm3)
+    else if (t.hour == hourAlarm3 && t.min == minuteAlarm3)
     {
         display_scene = 4;
         Serial.println("Alarm 3");
@@ -390,6 +390,10 @@ void playAnimate()
                         }
 
                         output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                    }
+                    else if (keypressed3 == '#')
+                    {
+                        setting(isSetTime);
                     }
                     else if (keypressed3 == 'A')
                     {
