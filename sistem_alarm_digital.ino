@@ -42,12 +42,9 @@ bool isAlarmPerform = false;
 
 bool isSetTime = false;
 bool isSetAlarm = false;
+bool isSetDuration = false;
 
 bool mainLoop = true;
-
-bool statusAlarm1 = false;
-bool statusAlarm2 = false;
-bool statusAlarm3 = false;
 
 bool isAlarm1 = false;
 bool isAlarm2 = false;
@@ -62,8 +59,8 @@ int display_effect = 0;
 String inputHourString;
 String inputMinuteString;
 
-String inputHourAlarmString;
-String inputMinuteAlarmString;
+String inputDurHourString;
+String inputDurMinuteString;
 
 char text[BUF_SIZE];
 
@@ -85,6 +82,10 @@ uint8_t minuteAlarm2;
 
 uint8_t hourAlarm3;
 uint8_t minuteAlarm3;
+
+int durAlarm1, durAlarm2, durAlarm3 = 0;
+int durationHour = 0;
+int durationMinute = 0;
 
 String times;
 int temp;
@@ -375,7 +376,6 @@ void playAnimate()
 
                     if (keypressed3 >= '0' && keypressed3 <= '9')
                     {
-                        Serial.println(keypressed3);
                         if (inputHourString.length() < 2)
                         {
                             inputHourString += keypressed3;
@@ -403,49 +403,111 @@ void playAnimate()
                     }
                     else if (keypressed3 == '#')
                     {
-                        setting(isSetTime);
+                        setting(isSetAlarm);
                     }
                     else if (keypressed3 == 'A')
                     {
-                        output.displayScroll(alarm1Message, textAlign, PA_SCROLL_LEFT, scrollSpeed);
                         hourAlarm1 = hour;
                         minuteAlarm1 = minute;
 
-                        Serial.println(hourAlarm1);
-                        Serial.println(minuteAlarm1);
-
                         isSetAlarm = false;
                         inputHourString = "";
                         inputMinuteString = "";
-                        setting(isSetTime);
+
+                        isSetDuration = !isSetDuration;
+
+                        if (isSetDuration)
+                        {
+                            output.displayScroll("Atur Durasi", textAlign, PA_SCROLL_LEFT, scrollSpeed);
+                            textTransition();
+
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = ':';
+                            text[3] = '-';
+                            text[4] = '-';
+
+                            output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                            setting(isSetDuration);
+                        }
                     }
-                    else if (keypressed3 == 'B')
+                    // else if (keypressed3 == 'B')
+                    // {
+                    //     output.displayScroll(alarm2Message, textAlign, PA_SCROLL_LEFT, scrollSpeed);
+                    //     hourAlarm2 = hour;
+                    //     minuteAlarm2 = minute;
+
+                    //     Serial.println(hourAlarm2);
+                    //     Serial.println(minuteAlarm2);
+
+                    //     isSetAlarm = false;
+                    //     inputHourString = "";
+                    //     inputMinuteString = "";
+                    //     setting(isSetAlarm);
+
+                    //     isSetDuration = !isSetDuration;
+                    // }
+                    // else if (keypressed3 == 'C')
+                    // {
+                    //     output.displayScroll(alarm3Message, textAlign, PA_SCROLL_LEFT, scrollSpeed);
+                    //     hourAlarm3 = hour;
+                    //     minuteAlarm3 = minute;
+
+                    //     Serial.println(hourAlarm3);
+                    //     Serial.println(minuteAlarm3);
+
+                    //     isSetAlarm = false;
+                    //     inputHourString = "";
+                    //     inputMinuteString = "";
+                    //     setting(isSetAlarm);
+
+                    //     isSetDuration = !isSetDuration;
+                    // }
+                }
+
+                if (isSetDuration)
+                {
+                    char keypressed4 = myKeypad.getKey();
+
+                    if (keypressed4 >= '0' && keypressed4 <= '9')
                     {
-                        output.displayScroll(alarm2Message, textAlign, PA_SCROLL_LEFT, scrollSpeed);
-                        hourAlarm2 = hour;
-                        minuteAlarm2 = minute;
+                        if (inputDurHourString.length() < 2)
+                        {
+                            inputDurHourString += keypressed4;
+                            durationHour = inputDurHourString.toInt();
 
-                        Serial.println(hourAlarm2);
-                        Serial.println(minuteAlarm2);
+                            text[0] = durationHour / 10 + 48;
+                            text[1] = durationHour % 10 + 48;
+                            text[2] = ':';
+                            text[3] = '-';
+                            text[4] = '-';
+                        }
+                        else
+                        {
+                            inputDurMinuteString += keypressed4;
+                            durationMinute = inputDurMinuteString.toInt();
 
-                        isSetAlarm = false;
-                        inputHourString = "";
-                        inputMinuteString = "";
-                        setting(isSetTime);
+                            text[0] = durationHour / 10 + 48;
+                            text[1] = durationHour % 10 + 48;
+                            text[2] = ':';
+                            text[3] = durationMinute / 10 + 48;
+                            text[4] = durationMinute % 10 + 48;
+                        }
+
+                        output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
                     }
-                    else if (keypressed3 == 'C')
+                    else if (keypressed4 == 'A')
                     {
-                        output.displayScroll(alarm3Message, textAlign, PA_SCROLL_LEFT, scrollSpeed);
-                        hourAlarm3 = hour;
-                        minuteAlarm3 = minute;
+                        output.displayScroll("Atur Alarm 1 berhasil", textAlign, PA_SCROLL_LEFT, scrollSpeed);
+                        int result = (durationHour * 3600) + (durationMinute * 60);
+                        durAlarm1 = result;
 
-                        Serial.println(hourAlarm3);
-                        Serial.println(minuteAlarm3);
+                        Serial.println(durAlarm1);
 
-                        isSetAlarm = false;
-                        inputHourString = "";
-                        inputMinuteString = "";
-                        setting(isSetTime);
+                        isSetDuration = false;
+                        inputDurHourString = "";
+                        inputDurMinuteString = "";
+                        setting(isSetDuration);
                     }
                 }
             }
@@ -517,6 +579,9 @@ void setup()
 
     inputHourString.reserve(2);
     inputMinuteString.reserve(2);
+
+    inputDurHourString.reserve(2);
+    inputDurMinuteString.reserve(2);
 
     for (byte i = 0; i < 10; i++)
     {
