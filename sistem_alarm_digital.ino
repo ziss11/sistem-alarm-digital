@@ -38,8 +38,6 @@ uint8_t scrollSpeed = 30;
 textPosition_t textAlign = PA_CENTER;
 uint16_t scrollPause = 3000;
 
-bool isAlarmPerform = false;
-
 bool isSetTime = false;
 bool isSetAlarm = false;
 bool isSetDuration = false;
@@ -171,7 +169,6 @@ void displayScene()
             output.setPause(60000);
             display_effect = 3;
         }
-        isAlarmPerform = false;
         break;
     case 3:
         strcpy(text, name.c_str());
@@ -181,9 +178,7 @@ void displayScene()
             output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
             output.setPause(60000);
             display_effect = 4;
-            isAlarmPerform = false;
         }
-        isAlarmPerform = false;
         break;
     case 4:
         strcpy(text, (nrp + ' ' + name).c_str());
@@ -194,7 +189,6 @@ void displayScene()
             output.setPause(60000);
             display_effect = 0;
         }
-        isAlarmPerform = false;
         break;
     }
 }
@@ -203,27 +197,21 @@ void setScene()
 {
     if (t.sec == 10 || t.sec == 40)
     {
-        if (isAlarmPerform == false)
-        {
-            display_scene = 1;
-            Serial.println("Suhu");
-        }
+        display_scene = 1;
+        Serial.println("Suhu");
     }
     else if (t.hour == hourAlarm1 && t.min == minuteAlarm1)
     {
-        isAlarmPerform = true;
         display_scene = 2;
         Serial.println("Alarm 1");
     }
     else if (t.hour == hourAlarm2 && t.min == minuteAlarm2)
     {
-        isAlarmPerform = true;
         display_scene = 3;
         Serial.println("Alarm 2");
     }
     else if (t.hour == hourAlarm3 && t.min == minuteAlarm3)
     {
-        isAlarmPerform = true;
         display_scene = 4;
         Serial.println("Alarm 3");
     }
@@ -403,6 +391,7 @@ void playAnimate()
                     }
                     else if (keypressed3 == '#')
                     {
+                        isSetAlarm = false;
                         setting(isSetAlarm);
                     }
                     else if (keypressed3 == 'A')
@@ -431,38 +420,58 @@ void playAnimate()
                             setting(isSetDuration);
                         }
                     }
-                    // else if (keypressed3 == 'B')
-                    // {
-                    //     output.displayScroll(alarm2Message, textAlign, PA_SCROLL_LEFT, scrollSpeed);
-                    //     hourAlarm2 = hour;
-                    //     minuteAlarm2 = minute;
+                    else if (keypressed3 == 'B')
+                    {
+                        hourAlarm2 = hour;
+                        minuteAlarm2 = minute;
 
-                    //     Serial.println(hourAlarm2);
-                    //     Serial.println(minuteAlarm2);
+                        isSetAlarm = false;
+                        inputHourString = "";
+                        inputMinuteString = "";
 
-                    //     isSetAlarm = false;
-                    //     inputHourString = "";
-                    //     inputMinuteString = "";
-                    //     setting(isSetAlarm);
+                        isSetDuration = !isSetDuration;
 
-                    //     isSetDuration = !isSetDuration;
-                    // }
-                    // else if (keypressed3 == 'C')
-                    // {
-                    //     output.displayScroll(alarm3Message, textAlign, PA_SCROLL_LEFT, scrollSpeed);
-                    //     hourAlarm3 = hour;
-                    //     minuteAlarm3 = minute;
+                        if (isSetDuration)
+                        {
+                            output.displayScroll("Atur Durasi", textAlign, PA_SCROLL_LEFT, scrollSpeed);
+                            textTransition();
 
-                    //     Serial.println(hourAlarm3);
-                    //     Serial.println(minuteAlarm3);
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = ':';
+                            text[3] = '-';
+                            text[4] = '-';
 
-                    //     isSetAlarm = false;
-                    //     inputHourString = "";
-                    //     inputMinuteString = "";
-                    //     setting(isSetAlarm);
+                            output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                            setting(isSetDuration);
+                        }
+                    }
+                    else if (keypressed3 == 'C')
+                    {
+                        hourAlarm3 = hour;
+                        minuteAlarm3 = minute;
 
-                    //     isSetDuration = !isSetDuration;
-                    // }
+                        isSetAlarm = false;
+                        inputHourString = "";
+                        inputMinuteString = "";
+
+                        isSetDuration = !isSetDuration;
+
+                        if (isSetDuration)
+                        {
+                            output.displayScroll("Atur Durasi", textAlign, PA_SCROLL_LEFT, scrollSpeed);
+                            textTransition();
+
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = ':';
+                            text[3] = '-';
+                            text[4] = '-';
+
+                            output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                            setting(isSetDuration);
+                        }
+                    }
                 }
 
                 if (isSetDuration)
@@ -496,13 +505,53 @@ void playAnimate()
 
                         output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
                     }
+                    else if (keypressed4 == '#')
+                    {
+                        hourAlarm1 = NULL;
+                        minuteAlarm1 = NULL;
+
+                        hourAlarm2 = NULL;
+                        minuteAlarm2 = NULL;
+
+                        hourAlarm3 = NULL;
+                        minuteAlarm3 = NULL;
+
+                        isSetDuration = false;
+                        setting(isSetDuration);
+                    }
                     else if (keypressed4 == 'A')
                     {
                         output.displayScroll("Atur Alarm 1 berhasil", textAlign, PA_SCROLL_LEFT, scrollSpeed);
-                        int result = (durationHour * 3600) + (durationMinute * 60);
+                        int result = (durationHour * 3600) + (durationMinute * 60) + second;
                         durAlarm1 = result;
 
                         Serial.println(durAlarm1);
+
+                        isSetDuration = false;
+                        inputDurHourString = "";
+                        inputDurMinuteString = "";
+                        setting(isSetDuration);
+                    }
+                    else if (keypressed4 == 'B')
+                    {
+                        output.displayScroll("Atur Alarm 2 berhasil", textAlign, PA_SCROLL_LEFT, scrollSpeed);
+                        int result = (durationHour * 3600) + (durationMinute * 60) + second;
+                        durAlarm2 = result;
+
+                        Serial.println(durAlarm2);
+
+                        isSetDuration = false;
+                        inputDurHourString = "";
+                        inputDurMinuteString = "";
+                        setting(isSetDuration);
+                    }
+                    else if (keypressed4 == 'C')
+                    {
+                        output.displayScroll("Atur Alarm 3 berhasil", textAlign, PA_SCROLL_LEFT, scrollSpeed);
+                        int result = (durationHour * 3600) + (durationMinute * 60) + second;
+                        durAlarm3 = result;
+
+                        Serial.println(durAlarm3);
 
                         isSetDuration = false;
                         inputDurHourString = "";
