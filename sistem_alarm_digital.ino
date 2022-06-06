@@ -48,6 +48,13 @@ bool isAlarm1 = false;
 bool isAlarm2 = false;
 bool isAlarm3 = false;
 
+bool isOnAlarm1 = false;
+bool isOnAlarm2 = false;
+bool isOnAlarm3 = false;
+
+bool isOnTime = false;
+bool isOnTemp = false;
+
 bool systemMainLoop = true;
 bool systemSettingLoop = false;
 
@@ -68,9 +75,9 @@ char alarm3Message[BUF_SIZE] = "Alarm 3 berhasil diatur";
 
 uint8_t intensity;
 
-uint8_t hour;
-uint8_t minute;
-uint8_t second;
+uint8_t timeHour;
+uint8_t timeMinute;
+uint8_t timeSecond;
 
 uint8_t hourAlarm1;
 uint8_t minuteAlarm1;
@@ -81,7 +88,6 @@ uint8_t minuteAlarm2;
 uint8_t hourAlarm3;
 uint8_t minuteAlarm3;
 
-int durLimit = 0;
 int durAlarm1Min, durAlarm2Min, durAlarm3Min = 0;
 int durAlarm1Sec, durAlarm2Sec, durAlarm3Sec = 0;
 
@@ -110,6 +116,7 @@ char keypressed;
 int pressedCount = 0;
 char c1, c2;
 int i1, i2;
+int countMinute, countSecond = 0;
 
 int setIntensityLed(int light)
 {
@@ -140,54 +147,7 @@ void adjustTime(String data)
 
 void displayScene()
 {
-    if (t.sec == 10 || t.sec == 40)
-    {
-        temp = rtc.getTemp();
-        dtostrf(temp, 0, 0, text);
-        strcat(text, " $");
-
-        if (display_effect == 1)
-        {
-            output.setTextEffect(PA_OPENING, PA_NO_EFFECT);
-            display_effect = 2;
-        }
-    }
-    else if (t.hour == hourAlarm1 && t.min == minuteAlarm1)
-    {
-        if (t.min <= durAlarm1Min && t.sec <= durAlarm1Sec)
-        {
-            strcpy(text, nrp.c_str());
-            if (display_effect == 2)
-            {
-                output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
-                display_effect = 3;
-            }
-            Serial.println("Alarm 1");
-        }
-    }
-    else if (t.hour == hourAlarm2 && t.min == minuteAlarm2)
-    {
-        strcpy(text, name.c_str());
-
-        if (display_effect == 3)
-        {
-            output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
-            display_effect = 4;
-        }
-        Serial.println("Alarm 2");
-    }
-    else if (t.hour == hourAlarm3 && t.min == minuteAlarm3)
-    {
-        strcpy(text, (nrp + ' ' + name).c_str());
-
-        if (display_effect == 4)
-        {
-            output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
-            display_effect = 0;
-        }
-        Serial.println("Alarm 3");
-    }
-    else
+    if (isOnTime)
     {
         strcpy(text, times.c_str());
 
@@ -196,17 +156,122 @@ void displayScene()
             output.setTextEffect(PA_SCROLL_DOWN, PA_NO_EFFECT);
             display_effect = 1;
         }
+        else
+        {
+            isOnTime = false;
+        }
         Serial.println("Jam");
+    }
+    else if (isOnTemp)
+    {
+        if (isOnAlarm1 == false || isOnAlarm2 == false || isOnAlarm3 == false)
+        {
+            temp = rtc.getTemp();
+            dtostrf(temp, 0, 0, text);
+            strcat(text, " $");
+
+            if (display_effect == 1)
+            {
+                output.setTextEffect(PA_OPENING, PA_NO_EFFECT);
+                output.setPause(5000);
+                display_effect = 2;
+            }
+            else
+            {
+                isOnTemp = false;
+            }
+            Serial.println("Temp");
+        }
+    }
+    else if (isOnAlarm1)
+    {
+        if (t.sec >= 60)
+        {
+            countMinute++;
+        }
+
+        if (countMinute <= durAlarm1Min && t.sec <= durAlarm1Sec)
+        {
+            strcpy(text, nrp.c_str());
+
+            if (display_effect == 2)
+            {
+                output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
+                display_effect = 3;
+            }
+        }
+        else
+        {
+            isOnAlarm1 = false;
+            isOnTime = true;
+            output.displayClear();
+        }
+        Serial.println("Alarm 1");
+    }
+    else if (isOnAlarm2)
+    {
+        strcpy(text, name.c_str());
+
+        if (display_effect == 3)
+        {
+            output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
+            display_effect = 4;
+        }
+        else
+        {
+            isOnAlarm2 = false;
+            isOnTime = true;
+        }
+        Serial.println("Alarm 2");
+    }
+    else if (isOnAlarm3)
+    {
+        strcpy(text, (nrp + ' ' + name).c_str());
+
+        if (display_effect == 4)
+        {
+            output.setTextEffect(PA_SCROLL_LEFT, PA_NO_EFFECT);
+            display_effect = 0;
+        }
+        else
+        {
+            isOnAlarm3 = false;
+            isOnTime = true;
+        }
+        Serial.println("Alarm 3");
+    }
+}
+
+void setScene()
+{
+    if (t.sec == 10 || t.sec == 40)
+    {
+        isOnTemp = true;
+    }
+    else if (t.hour == hourAlarm1 && t.min == minuteAlarm1)
+    {
+        isOnAlarm1 = true;
+    }
+    else if (t.hour == hourAlarm2 && t.min == minuteAlarm2)
+    {
+        isOnAlarm2 = true;
+    }
+    else if (t.hour == hourAlarm3 && t.min == minuteAlarm3)
+    {
+        isOnAlarm3 = true;
+    }
+    else
+    {
+        isOnTime = true;
     }
 }
 
 void setTime()
 {
-    hour = t.hour;
-    minute = t.min;
-    second = t.sec;
+    timeHour = t.hour;
+    timeMinute = t.min;
     temp = (int)rtc.getTemp();
-    times = (String)hour + ':' + minute;
+    times = (String)timeHour + ':' + timeMinute;
 }
 
 void setting(bool b)
@@ -271,6 +336,7 @@ void playAnimate()
                     mainLoop = false;
                 }
                 setTime();
+                setScene();
                 displayScene();
             }
             if (systemMainLoop == false && systemSettingLoop == true)
@@ -293,10 +359,10 @@ void playAnimate()
                         if (inputHourString.length() < 2)
                         {
                             inputHourString += keypressed2;
-                            hour = inputHourString.toInt();
+                            timeHour = inputHourString.toInt();
 
-                            text[0] = hour / 10 + 48;
-                            text[1] = hour % 10 + 48;
+                            text[0] = timeHour / 10 + 48;
+                            text[1] = timeHour % 10 + 48;
                             text[2] = ':';
                             text[3] = '-';
                             text[4] = '-';
@@ -304,31 +370,31 @@ void playAnimate()
                         else
                         {
                             inputMinuteString += keypressed2;
-                            minute = inputMinuteString.toInt();
+                            timeMinute = inputMinuteString.toInt();
 
-                            text[0] = hour / 10 + 48;
-                            text[1] = hour % 10 + 48;
+                            text[0] = timeHour / 10 + 48;
+                            text[1] = timeHour % 10 + 48;
                             text[2] = ':';
-                            text[3] = minute / 10 + 48;
-                            text[4] = minute % 10 + 48;
+                            text[3] = timeMinute / 10 + 48;
+                            text[4] = timeMinute % 10 + 48;
                         }
 
-                        if (hour >= 24)
+                        if (timeHour >= 24)
                         {
-                            hour = 0;
+                            timeHour = 0;
                         }
 
-                        if (minute >= 60)
+                        if (timeMinute >= 60)
                         {
-                            minute = 0;
-                            hour++;
+                            timeMinute = 0;
+                            timeHour++;
                         }
 
                         output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
                     }
                     else if (keypressed2 == '*')
                     {
-                        rtc.setTime(hour, minute, second);
+                        rtc.setTime(timeHour, timeMinute, t.sec);
                         isSetTime = false;
                         inputHourString = "";
                         inputMinuteString = "";
@@ -345,10 +411,10 @@ void playAnimate()
                         if (inputHourString.length() < 2)
                         {
                             inputHourString += keypressed3;
-                            hour = inputHourString.toInt();
+                            timeHour = inputHourString.toInt();
 
-                            text[0] = hour / 10 + 48;
-                            text[1] = hour % 10 + 48;
+                            text[0] = timeHour / 10 + 48;
+                            text[1] = timeHour % 10 + 48;
                             text[2] = ':';
                             text[3] = '-';
                             text[4] = '-';
@@ -356,40 +422,40 @@ void playAnimate()
                         else
                         {
                             inputMinuteString += keypressed3;
-                            minute = inputMinuteString.toInt();
+                            timeMinute = inputMinuteString.toInt();
 
-                            text[0] = hour / 10 + 48;
-                            text[1] = hour % 10 + 48;
+                            text[0] = timeHour / 10 + 48;
+                            text[1] = timeHour % 10 + 48;
                             text[2] = ':';
-                            text[3] = minute / 10 + 48;
-                            text[4] = minute % 10 + 48;
+                            text[3] = timeMinute / 10 + 48;
+                            text[4] = timeMinute % 10 + 48;
                         }
 
-                        if (hour >= 24)
+                        if (timeHour >= 24)
                         {
-                            hour = 0;
+                            timeHour = 0;
                         }
 
-                        if (minute >= 60)
+                        if (timeMinute >= 60)
                         {
-                            minute = 0;
-                            hour++;
+                            timeMinute = 0;
+                            timeHour++;
                         }
 
                         output.displayText(text, textAlign, scrollSpeed, 0, PA_SCROLL_UP, PA_NO_EFFECT);
                     }
                     else if (keypressed3 == '#')
                     {
-                        hour = 0;
-                        minute = 0;
+                        timeHour = 0;
+                        timeMinute = 0;
 
                         isSetAlarm = false;
                         setting(isSetAlarm);
                     }
                     else if (keypressed3 == 'A')
                     {
-                        hourAlarm1 = hour;
-                        minuteAlarm1 = minute;
+                        hourAlarm1 = timeHour;
+                        minuteAlarm1 = timeMinute;
 
                         isSetAlarm = false;
                         inputHourString = "";
@@ -414,8 +480,8 @@ void playAnimate()
                     }
                     else if (keypressed3 == 'B')
                     {
-                        hourAlarm2 = hour;
-                        minuteAlarm2 = minute;
+                        hourAlarm2 = timeHour;
+                        minuteAlarm2 = timeMinute;
 
                         isSetAlarm = false;
                         inputHourString = "";
@@ -440,8 +506,8 @@ void playAnimate()
                     }
                     else if (keypressed3 == 'C')
                     {
-                        hourAlarm3 = hour;
-                        minuteAlarm3 = minute;
+                        hourAlarm3 = timeHour;
+                        minuteAlarm3 = timeMinute;
 
                         isSetAlarm = false;
                         inputHourString = "";
@@ -521,6 +587,7 @@ void playAnimate()
                         Serial.println(durAlarm1Min);
                         Serial.println(durAlarm1Sec);
 
+                        isOnAlarm1 = true;
                         isSetDuration = false;
                         inputDurMinuteString = "";
                         inputDurSecondString = "";
