@@ -116,15 +116,15 @@ char keypressed;
 int setIntensityLed(int light)
 {
     int value = 0;
-    if (light <= 100)
+    if (light <= 150)
     {
         value = 0;
     }
-    else if (light >= 101 && light <= 200)
+    else if (light >= 151 && light <= 250)
     {
         value = 5;
     }
-    else if (light >= 201 && light <= 250)
+    else if (light >= 251 && light <= 300)
     {
         value = 10;
     }
@@ -208,7 +208,7 @@ void displayScene()
     }
     else if (isOnAlarm[2])
     {
-        strcpy(text, (nrp + "; " + name).c_str());
+        strcpy(text, (nrp + ';' + name).c_str());
 
         if (display_effect == 4)
         {
