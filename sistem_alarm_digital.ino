@@ -108,17 +108,17 @@ char keypressed;
 int setIntensityLed(int light)
 {
     int value = 0;
-    if (light <= 150)
+    if (light >= 200 && light <= 250)
     {
-        value = 0;
-    }
-    else if (light >= 151 && light <= 250)
-    {
-        value = 5;
+        value = 10;
     }
     else if (light >= 251 && light <= 300)
     {
-        value = 10;
+        value = 5;
+    }
+    else if (light > 300)
+    {
+        value = 0;
     }
     return value;
 }
