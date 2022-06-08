@@ -1,9 +1,5 @@
-#include <MD_MAX72xx_lib.h>
 #include <MD_MAX72xx.h>
-
-#include <MD_Parola_lib.h>
 #include <MD_Parola.h>
-
 #include <DS3231.h>
 #include <Keypad.h>
 
@@ -24,7 +20,7 @@ char keymap[4][4] = {
 byte rowPins[4] = {9, 8, 7, 6};
 byte colPins[4] = {5, 4, 3, 2};
 
-MD_Parola output = MD_Parola(HARDWARE_TYPE, 11, 13, 10, 4);
+MD_Parola output = MD_Parola(HARDWARE_TYPE, 10, 4);
 Keypad myKeypad = Keypad(makeKeymap(keymap), rowPins, colPins, 4, 4);
 
 DS3231 rtc(SDA, SCL);
@@ -108,15 +104,15 @@ char keypressed;
 int setIntensityLed(int light)
 {
     int value = 0;
-    if (light >= 200 && light <= 250)
+    if (light <= 300)
     {
         value = 10;
     }
-    else if (light >= 251 && light <= 300)
+    else if (light > 300 && light < 400)
     {
         value = 5;
     }
-    else if (light > 300)
+    else if (light >= 300)
     {
         value = 0;
     }
@@ -265,6 +261,8 @@ void setTime()
     timeHour = t.hour;
     timeMinute = t.min;
 
+    times = (String)timeHour + ':' + timeMinute + ':' + t.sec;
+
     for (int x = 0; x < 100; x++)
     {
         temptot += analogRead(LM);
@@ -273,7 +271,6 @@ void setTime()
     float sensorValue = temptot / 100;
     float voltage = sensorValue * (1100 / 1023);
     temp = voltage * 0.1;
-    times = (String)timeHour + ':' + timeMinute;
 }
 
 void setting(bool b)
@@ -304,356 +301,331 @@ void textTransition()
 
 void playAnimate()
 {
-    output.displayAnimate();
     keypressed = myKeypad.getKey();
     uint8_t intensity = setIntensityLed(analogRead(LDR));
     output.setIntensity(intensity);
 
     if (keypressed == NO_KEY)
     {
-        if (systemMainLoop == true && systemSettingLoop == false)
+        if (output.displayAnimate())
         {
-            if (strlen(text) >= 8)
+            if (systemMainLoop == true && systemSettingLoop == false)
             {
-                output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_LEFT, PA_NO_EFFECT);
-            }
-            else
-            {
-                output.displayText(text, PA_CENTER, 30, 0, PA_PRINT, PA_NO_EFFECT);
-            }
-
-            t = rtc.getTime();
-
-            if (mainLoop == true)
-            {
-                output.setSpeed(40);
-                output.setPause(500);
-                output.setTextEffect(0, PA_SCROLL_DOWN, PA_NO_EFFECT);
-                mainLoop = false;
-            }
-            setTime();
-            setScene();
-            displayScene();
-        }
-        if (systemMainLoop == false && systemSettingLoop == true)
-        {
-            if (mainLoop == false)
-            {
-                output.setSpeed(40);
-                output.setPause(500);
-                output.setTextEffect(0, PA_SCROLL_UP, PA_NO_EFFECT);
-                mainLoop = true;
-            }
-
-            if (isSetTime)
-            {
-                char keypressed2 = myKeypad.waitForKey();
-
-                if (keypressed2 >= '0' && keypressed2 <= '9')
+                if (strlen(text) >= 10)
                 {
-                    if (inputHourString.length() < 2)
+                    output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_LEFT, PA_NO_EFFECT);
+                }
+                else
+                {
+                    output.displayText(text, PA_CENTER, 30, 0, PA_PRINT, PA_NO_EFFECT);
+                }
+
+                t = rtc.getTime();
+
+                if (mainLoop == true)
+                {
+                    output.setSpeed(40);
+                    output.setPause(500);
+                    output.setTextEffect(0, PA_SCROLL_DOWN, PA_NO_EFFECT);
+                    mainLoop = false;
+                }
+                setTime();
+                setScene();
+                displayScene();
+            }
+            if (systemMainLoop == false && systemSettingLoop == true)
+            {
+                if (mainLoop == false)
+                {
+                    output.setSpeed(40);
+                    output.setPause(500);
+                    output.setTextEffect(0, PA_SCROLL_UP, PA_NO_EFFECT);
+                    mainLoop = true;
+                }
+
+                if (isSetTime)
+                {
+                    char keypressed2 = myKeypad.waitForKey();
+
+                    if (keypressed2 >= '0' && keypressed2 <= '9')
                     {
-                        inputHourString += keypressed2;
-                        timeHour = inputHourString.toInt();
+                        if (inputHourString.length() < 2)
+                        {
+                            inputHourString += keypressed2;
+                            timeHour = inputHourString.toInt();
 
-                        text[0] = timeHour / 10 + 48;
-                        text[1] = timeHour % 10 + 48;
-                        text[2] = ':';
-                        text[3] = '-';
-                        text[4] = '-';
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
+                            text[0] = timeHour / 10 + 48;
+                            text[1] = timeHour % 10 + 48;
+                            text[2] = ':';
+                            text[3] = '-';
+                            text[4] = '-';
+                        }
+                        else
+                        {
+                            inputMinuteString += keypressed2;
+                            timeMinute = inputMinuteString.toInt();
+
+                            text[0] = timeHour / 10 + 48;
+                            text[1] = timeHour % 10 + 48;
+                            text[2] = ':';
+                            text[3] = timeMinute / 10 + 48;
+                            text[4] = timeMinute % 10 + 48;
+                        }
+
+                        if (timeHour >= 24)
+                        {
+                            timeHour = 0;
+                        }
+
+                        if (timeMinute >= 60)
+                        {
+                            timeMinute = 0;
+                            timeHour++;
+                        }
+
+                        output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
                     }
-                    else
+                    else if (keypressed2 == '*')
                     {
-                        inputMinuteString += keypressed2;
-                        timeMinute = inputMinuteString.toInt();
-
-                        text[0] = timeHour / 10 + 48;
-                        text[1] = timeHour % 10 + 48;
-                        text[2] = ':';
-                        text[3] = timeMinute / 10 + 48;
-                        text[4] = timeMinute % 10 + 48;
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
+                        rtc.setTime(timeHour, timeMinute, t.sec);
+                        isSetTime = false;
+                        inputHourString = "";
+                        inputMinuteString = "";
+                        setting(isSetTime);
                     }
+                }
 
-                    if (timeHour >= 24)
+                if (isSetAlarm)
+                {
+                    char keypressed3 = myKeypad.waitForKey();
+
+                    if (keypressed3 >= '0' && keypressed3 <= '9')
+                    {
+                        if (inputHourString.length() < 2)
+                        {
+                            inputHourString += keypressed3;
+                            timeHour = inputHourString.toInt();
+
+                            text[0] = timeHour / 10 + 48;
+                            text[1] = timeHour % 10 + 48;
+                            text[2] = ':';
+                            text[3] = '-';
+                            text[4] = '-';
+                        }
+                        else
+                        {
+                            inputMinuteString += keypressed3;
+                            timeMinute = inputMinuteString.toInt();
+
+                            text[0] = timeHour / 10 + 48;
+                            text[1] = timeHour % 10 + 48;
+                            text[2] = ':';
+                            text[3] = timeMinute / 10 + 48;
+                            text[4] = timeMinute % 10 + 48;
+                        }
+
+                        if (timeHour >= 24)
+                        {
+                            timeHour = 0;
+                        }
+
+                        if (timeMinute >= 60)
+                        {
+                            timeMinute = 0;
+                            timeHour++;
+                        }
+
+                        output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                    }
+                    else if (keypressed3 == '#')
                     {
                         timeHour = 0;
-                    }
-
-                    if (timeMinute >= 60)
-                    {
                         timeMinute = 0;
-                        timeHour++;
-                    }
 
-                    output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                        inputHourString = "";
+                        inputMinuteString = "";
+
+                        isSetAlarm = false;
+                        setting(isSetAlarm);
+                    }
+                    else if (keypressed3 == 'A')
+                    {
+                        hourAlarm[0] = timeHour;
+                        minuteAlarm[0] = timeMinute;
+
+                        isSetAlarm = false;
+                        inputHourString = "";
+                        inputMinuteString = "";
+
+                        isSetDuration = !isSetDuration;
+
+                        if (isSetDuration)
+                        {
+                            output.displayScroll("Atur Durasi", PA_CENTER, PA_SCROLL_LEFT, 30);
+                            textTransition();
+
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = '\0';
+                            text[3] = '\0';
+                            text[4] = '\0';
+
+                            output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                            setting(isSetDuration);
+                        }
+                    }
+                    else if (keypressed3 == 'B')
+                    {
+                        hourAlarm[1] = timeHour;
+                        minuteAlarm[1] = timeMinute;
+
+                        isSetAlarm = false;
+                        inputHourString = "";
+                        inputMinuteString = "";
+
+                        isSetDuration = !isSetDuration;
+
+                        if (isSetDuration)
+                        {
+                            output.displayScroll("Atur Durasi", PA_CENTER, PA_SCROLL_LEFT, 30);
+                            textTransition();
+
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = '\0';
+                            text[3] = '\0';
+                            text[4] = '\0';
+
+                            output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                            setting(isSetDuration);
+                        }
+                    }
+                    else if (keypressed3 == 'C')
+                    {
+                        hourAlarm[2] = timeHour;
+                        minuteAlarm[2] = timeMinute;
+
+                        isSetAlarm = false;
+                        inputHourString = "";
+                        inputMinuteString = "";
+
+                        isSetDuration = !isSetDuration;
+
+                        if (isSetDuration)
+                        {
+                            output.displayScroll("Atur Durasi", PA_CENTER, PA_SCROLL_LEFT, 30);
+                            textTransition();
+
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = '\0';
+                            text[3] = '\0';
+                            text[4] = '\0';
+
+                            output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                            setting(isSetDuration);
+                        }
+                    }
+                    else if (keypressed3 == 'D')
+                    {
+                        hourAlarm[3] = timeHour;
+                        minuteAlarm[3] = timeMinute;
+
+                        isSetAlarm = false;
+                        inputHourString = "";
+                        inputMinuteString = "";
+
+                        isSetDuration = !isSetDuration;
+
+                        if (isSetDuration)
+                        {
+                            output.displayScroll("Atur Durasi", PA_CENTER, PA_SCROLL_LEFT, 30);
+                            textTransition();
+
+                            text[0] = '-';
+                            text[1] = '-';
+                            text[2] = '\0';
+                            text[3] = '\0';
+                            text[4] = '\0';
+
+                            output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                            setting(isSetDuration);
+                        }
+                    }
                 }
-                else if (keypressed2 == '*')
+
+                if (isSetDuration)
                 {
-                    rtc.setTime(timeHour, timeMinute, t.sec);
-                    isSetTime = false;
-                    inputHourString = "";
-                    inputMinuteString = "";
-                    setting(isSetTime);
-                }
-            }
+                    char keypressed4 = myKeypad.getKey();
 
-            if (isSetAlarm)
-            {
-                char keypressed3 = myKeypad.waitForKey();
-
-                if (keypressed3 >= '0' && keypressed3 <= '9')
-                {
-                    if (inputHourString.length() < 2)
+                    if (keypressed4 >= '0' && keypressed4 <= '9')
                     {
-                        inputHourString += keypressed3;
-                        timeHour = inputHourString.toInt();
+                        if (inputDurSecondString.length() < 2)
+                        {
+                            inputDurSecondString += keypressed4;
+                            durationSecond = inputDurSecondString.toInt();
 
-                        text[0] = timeHour / 10 + 48;
-                        text[1] = timeHour % 10 + 48;
-                        text[2] = ':';
-                        text[3] = '-';
-                        text[4] = '-';
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
-                    }
-                    else
-                    {
-                        inputMinuteString += keypressed3;
-                        timeMinute = inputMinuteString.toInt();
-
-                        text[0] = timeHour / 10 + 48;
-                        text[1] = timeHour % 10 + 48;
-                        text[2] = ':';
-                        text[3] = timeMinute / 10 + 48;
-                        text[4] = timeMinute % 10 + 48;
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
-                    }
-
-                    if (timeHour >= 24)
-                    {
-                        timeHour = 0;
-                    }
-
-                    if (timeMinute >= 60)
-                    {
-                        timeMinute = 0;
-                        timeHour++;
-                    }
-
-                    output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
-                }
-                else if (keypressed3 == '#')
-                {
-                    timeHour = 0;
-                    timeMinute = 0;
-
-                    inputHourString = "";
-                    inputMinuteString = "";
-
-                    isSetAlarm = false;
-                    setting(isSetAlarm);
-                }
-                else if (keypressed3 == 'A')
-                {
-                    hourAlarm[0] = timeHour;
-                    minuteAlarm[0] = timeMinute;
-
-                    isSetAlarm = false;
-                    inputHourString = "";
-                    inputMinuteString = "";
-
-                    isSetDuration = !isSetDuration;
-
-                    if (isSetDuration)
-                    {
-                        output.displayScroll("Atur Durasi", PA_CENTER, PA_SCROLL_LEFT, 30);
-                        textTransition();
-
-                        text[0] = '-';
-                        text[1] = '-';
-                        text[2] = '\0';
-                        text[3] = '\0';
-                        text[4] = '\0';
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
+                            text[0] = durationSecond / 10 + 48;
+                            text[1] = durationSecond % 10 + 48;
+                            text[2] = '\0';
+                            text[3] = '\0';
+                            text[4] = '\0';
+                        }
 
                         output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                    }
+                    else if (keypressed4 == '#')
+                    {
+                        durationSecond = 0;
+                        inputDurSecondString = "";
+
+                        isSetDuration = false;
                         setting(isSetDuration);
                     }
-                }
-                else if (keypressed3 == 'B')
-                {
-                    hourAlarm[1] = timeHour;
-                    minuteAlarm[1] = timeMinute;
-
-                    isSetAlarm = false;
-                    inputHourString = "";
-                    inputMinuteString = "";
-
-                    isSetDuration = !isSetDuration;
-
-                    if (isSetDuration)
+                    else if (keypressed4 == 'A')
                     {
-                        output.displayScroll("Atur Durasi", PA_CENTER, PA_SCROLL_LEFT, 30);
-                        textTransition();
+                        output.displayScroll(alarmMessage[0], PA_CENTER, PA_SCROLL_LEFT, 30);
 
-                        text[0] = '-';
-                        text[1] = '-';
-                        text[2] = '\0';
-                        text[3] = '\0';
-                        text[4] = '\0';
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
+                        durAlarm[0] = durationSecond;
 
-                        output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                        isOnAlarm[0] = true;
+                        isSetDuration = false;
+                        inputDurSecondString = "";
                         setting(isSetDuration);
                     }
-                }
-                else if (keypressed3 == 'C')
-                {
-                    hourAlarm[2] = timeHour;
-                    minuteAlarm[2] = timeMinute;
-
-                    isSetAlarm = false;
-                    inputHourString = "";
-                    inputMinuteString = "";
-
-                    isSetDuration = !isSetDuration;
-
-                    if (isSetDuration)
+                    else if (keypressed4 == 'B')
                     {
-                        output.displayScroll("Atur Durasi", PA_CENTER, PA_SCROLL_LEFT, 30);
-                        textTransition();
+                        output.displayScroll(alarmMessage[1], PA_CENTER, PA_SCROLL_LEFT, 30);
 
-                        text[0] = '-';
-                        text[1] = '-';
-                        text[2] = '\0';
-                        text[3] = '\0';
-                        text[4] = '\0';
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
+                        durAlarm[1] = durationSecond;
 
-                        output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                        isOnAlarm[1] = true;
+                        isSetDuration = false;
+                        inputDurSecondString = "";
                         setting(isSetDuration);
                     }
-                }
-                else if (keypressed3 == 'D')
-                {
-                    hourAlarm[3] = timeHour;
-                    minuteAlarm[3] = timeMinute;
-
-                    isSetAlarm = false;
-                    inputHourString = "";
-                    inputMinuteString = "";
-
-                    isSetDuration = !isSetDuration;
-
-                    if (isSetDuration)
+                    else if (keypressed4 == 'C')
                     {
-                        output.displayScroll("Atur Durasi", PA_CENTER, PA_SCROLL_LEFT, 30);
-                        textTransition();
+                        output.displayScroll(alarmMessage[2], PA_CENTER, PA_SCROLL_LEFT, 30);
 
-                        text[0] = '-';
-                        text[1] = '-';
-                        text[2] = '\0';
-                        text[3] = '\0';
-                        text[4] = '\0';
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
+                        durAlarm[2] = durationSecond;
 
-                        output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
+                        isOnAlarm[2] = true;
+                        isSetDuration = false;
+                        inputDurSecondString = "";
                         setting(isSetDuration);
                     }
-                }
-            }
-
-            if (isSetDuration)
-            {
-                char keypressed4 = myKeypad.getKey();
-
-                if (keypressed4 >= '0' && keypressed4 <= '9')
-                {
-                    if (inputDurSecondString.length() < 2)
+                    else if (keypressed4 == 'D')
                     {
-                        inputDurSecondString += keypressed4;
-                        durationSecond = inputDurSecondString.toInt();
+                        output.displayScroll(alarmMessage[3], PA_CENTER, PA_SCROLL_LEFT, 30);
 
-                        text[0] = durationSecond / 10 + 48;
-                        text[1] = durationSecond % 10 + 48;
-                        text[2] = '\0';
-                        text[3] = '\0';
-                        text[4] = '\0';
-                        text[5] = '\0';
-                        text[6] = '\0';
-                        text[7] = '\0';
+                        durAlarm[3] = durationSecond;
+
+                        isOnAlarm[3] = true;
+                        isSetDuration = false;
+                        inputDurSecondString = "";
+                        setting(isSetDuration);
                     }
-
-                    output.displayText(text, PA_CENTER, 30, 0, PA_SCROLL_UP, PA_NO_EFFECT);
-                }
-                else if (keypressed4 == '#')
-                {
-                    durationSecond = 0;
-                    inputDurSecondString = "";
-
-                    isSetDuration = false;
-                    setting(isSetDuration);
-                }
-                else if (keypressed4 == 'A')
-                {
-                    output.displayScroll(alarmMessage[0], PA_CENTER, PA_SCROLL_LEFT, 30);
-
-                    durAlarm[0] = durationSecond;
-
-                    isOnAlarm[0] = true;
-                    isSetDuration = false;
-                    inputDurSecondString = "";
-                    setting(isSetDuration);
-                }
-                else if (keypressed4 == 'B')
-                {
-                    output.displayScroll(alarmMessage[1], PA_CENTER, PA_SCROLL_LEFT, 30);
-
-                    durAlarm[1] = durationSecond;
-
-                    isOnAlarm[1] = true;
-                    isSetDuration = false;
-                    inputDurSecondString = "";
-                    setting(isSetDuration);
-                }
-                else if (keypressed4 == 'C')
-                {
-                    output.displayScroll(alarmMessage[2], PA_CENTER, PA_SCROLL_LEFT, 30);
-
-                    durAlarm[2] = durationSecond;
-
-                    isOnAlarm[2] = true;
-                    isSetDuration = false;
-                    inputDurSecondString = "";
-                    setting(isSetDuration);
-                }
-                else if (keypressed4 == 'D')
-                {
-                    output.displayScroll(alarmMessage[3], PA_CENTER, PA_SCROLL_LEFT, 30);
-
-                    durAlarm[3] = durationSecond;
-
-                    isOnAlarm[3] = true;
-                    isSetDuration = false;
-                    inputDurSecondString = "";
-                    setting(isSetDuration);
                 }
             }
         }
